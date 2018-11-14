@@ -6,6 +6,7 @@ from model import model
 from varible import *
 
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 def get_target_variable(name):
@@ -23,6 +24,39 @@ def get_target_output(name, net):
             return all[i]
     return None
 
+
+def plot_histogram(weights, image_name: str):
+    """A function to plot weights distribution"""
+
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111)
+
+    ax.hist(weights,
+            bins=100,
+            facecolor='green',
+            edgecolor='black',
+            alpha=0.7,
+            # range=(0.8, 1)
+            )
+
+    ax.set_title(image_name + '  APOZ Distribution')
+    ax.set_ylabel('number of times')
+    # ax.set_ylabel('Percentage')
+
+    fig.savefig(image_name + '.png')
+
+
+# 读取
+f = open('temp.txt', 'r')
+temp = f.read()
+apoz = eval(temp)
+f.close()
+
+plot_histogram(apoz['bn_11'], 'bn_11')
+
+mean_apoz = {}
+for key in apoz:
+    mean_apoz[key] = np.array(apoz[key]).mean()
 
 x_train, y_train, x_valid, y_valid, x_test, y_test = read_data('/home/hsq/DeepLearning/data/dogVscat/train', 0.3, 0,
                                                                pos_path="/dog/", neg_path="/cat/")
@@ -56,6 +90,7 @@ with tf.Session() as sess:
             j += 1
         for i in range(len(apoz[key])):
             apoz[key][i] = apoz[key][i] / out[0, ..., 0].size
+        print(key)
     # 保存
     f = open('temp.txt', 'w')
     f.write(str(apoz))
