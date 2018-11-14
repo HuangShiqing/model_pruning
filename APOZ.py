@@ -41,19 +41,29 @@ with tf.Session() as sess:
 
     apoz = {'bn_11': [], 'bn_12': [], 'bn_21': [], 'bn_22': [], 'bn_31': [], 'bn_32': [], 'bn_33': [], 'bn_41': [],
             'bn_42': [], 'bn_43': [], 'bn_51': [], 'bn_52': [], 'bn_53': []}
+    for key in apoz:
+        data_yield = data_generator(x_valid, y_valid)
+        j = 1
+        for img, lable in data_yield:
+            out = sess.run(get_target_output(key, net), feed_dict={input_pb: img})
+            for i in range(out.shape[-1]):
+                nonzero_num = np.count_nonzero(out[..., i])
+                zero_num = (out[..., i].size - nonzero_num) / Gb_batch_size
+                try:
+                    apoz[key][i] = (apoz[key][i] * (j - 1) + zero_num) / j
+                except:
+                    apoz[key].append(zero_num)
+            j += 1
+        for i in range(len(apoz[key])):
+            apoz[key][i] = apoz[key][i] / out[0, ..., 0].size
+    # 保存
+    f = open('temp.txt', 'w')
+    f.write(str(apoz))
+    f.close()
 
-    data_yield = data_generator(x_valid, y_valid)
-    j = 1
-    for img, lable in data_yield:
-        bn_11 = sess.run(get_target_output('bn_11', net), feed_dict={input_pb: img})
-
-        for i in range(bn_11.shape[-1]):
-            nonzero = np.count_nonzero(bn_11[..., i])
-            zero_num = (bn_11[..., i].size - nonzero) / Gb_batch_size
-            try:
-                apoz['bn_11'][i] = (apoz['bn_11'][i] * (j - 1) + zero_num) / j
-            except:
-                apoz['bn_11'].append(zero_num)
-        j += 1
-    # apoz['bn_11'] = apoz['bn_11'] / bn_11[0, ..., 0].size
+    # 读取
+    # f = open('temp.txt', 'r')
+    # a = f.read()
+    # dict_name = eval(a)
+    # f.close()
     exit()
