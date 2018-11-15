@@ -13,7 +13,9 @@ def model(x, is_train=True, pruning=None):
                 'conv_51': 512, 'conv_52': 512, 'conv_53': 512}
     if pruning != None:
         for key in pruning:
-            n_filter[key] -= pruning[key]
+            pruning_num = len(pruning[key])
+            key = key.replace('bn', 'conv')
+            n_filter[key] -= pruning_num
 
     net_in = InputLayer(x, name='input')
     # conv1

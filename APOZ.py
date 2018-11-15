@@ -56,7 +56,7 @@ if __name__ == '__main__':
         f.close()
         mean_apoz = {}
         for key in apoz:
-            # plot_histogram(apoz[key], key)
+            plot_histogram(apoz[key], key)
             mean_apoz[key] = np.array(apoz[key]).mean()
 
         for key in mean_apoz:
