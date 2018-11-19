@@ -56,28 +56,32 @@ if __name__ == '__main__':
         f.close()
         mean_apoz = {}
         for key in apoz:
-            plot_histogram(apoz[key], key)
+            # plot_histogram(apoz[key], key)
             mean_apoz[key] = np.array(apoz[key]).mean()
 
         for key in mean_apoz:
             print('mean APOZ(%) of ', key, ' = ', mean_apoz[key])
 
-        key = 'bn_53'
-        pruning_percentage = 0.3
-        pruning_proposal = {key: []}
+        keys = ['bn_11', 'bn_12', 'bn_21', 'bn_22', 'bn_31', 'bn_32', 'bn_33', 'bn_41', 'bn_42', 'bn_43', 'bn_51',
+                'bn_52', 'bn_53']
+        pruning_percentages = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        for key in keys:
+            for pruning_percentage in pruning_percentages:
+                pruning_proposal = {key: []}
 
-        layer_apoz = np.array(apoz[key])
-        argsort = np.argsort(layer_apoz)[::-1]
-        pruning_proposal[key] = [i for i in argsort[:int(pruning_percentage * len(layer_apoz))]]
+                layer_apoz = np.array(apoz[key])
+                argsort = np.argsort(layer_apoz)[::-1]
+                pruning_proposal[key] = [i for i in argsort[:int(pruning_percentage * len(layer_apoz))]]
 
-        if os.path.exists('./pruning_proposal/') is False:
-            os.mkdir('./pruning_proposal/')
-        f = open('./pruning_proposal/' + 'pruning_proposal_of_' + key + '.txt', 'w')
-        f.write(str(pruning_proposal))
-        f.close()
+                if os.path.exists('./pruning_proposal/') is False:
+                    os.mkdir('./pruning_proposal/')
+                f = open('./pruning_proposal/' + 'pruning_proposal_of_' + key + '_' + str(pruning_percentage) + '.txt',
+                         'w')
+                f.write(str(pruning_proposal))
+                f.close()
         exit()
     else:
-        x_train, y_train, x_valid, y_valid, x_test, y_test = read_data('D:/DeepLearning/data2/dogVScat/train', 0.3, 0,
+        x_train, y_train, x_valid, y_valid, x_test, y_test = read_data('/home/xinje/hsq/data/dogVScat', 0.3, 0,
                                                                        pos_path="/dog/", neg_path="/cat/")
         input_pb = tf.placeholder(tf.float32, [None, 224, 224, 3])
         label_pb = tf.placeholder(tf.int32, [None])

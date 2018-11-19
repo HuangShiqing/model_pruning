@@ -164,12 +164,12 @@ def get_data(img_abs_path, y):
     image = cv2.imread(img_abs_path)
     image = image[:, :, ::-1]  # RGB image
     image = resize_img(image)
-    image = random_distort_image(image, hue=10)
+    # image = random_distort_image(image, hue=10)
 
-    flip = np.random.randint(2)
-    image = random_flip(image, flip)
+    # flip = np.random.randint(2)
+    # image = random_flip(image, flip)
 
-    image = tl.prepro.shift(image, is_random=True)
+    # image = tl.prepro.shift(image, is_random=True)
 
     return image, y
 
