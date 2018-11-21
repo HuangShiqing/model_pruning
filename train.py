@@ -23,7 +23,7 @@ def losses(logits, labels):
     return loss
 
 
-def trainning(loss, learning_rate):
+def trainning(loss, learning_rate, var_list=None):
     '''Training ops, the Op returned by this function is what must be passed to
         'sess.run()' call to cause the model to train.
     Args:
@@ -34,7 +34,7 @@ def trainning(loss, learning_rate):
     with tf.name_scope('optimizer'):
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         global_step = tf.Variable(0, name='global_step', trainable=False)
-        train_op = optimizer.minimize(loss, global_step=global_step)
+        train_op = optimizer.minimize(loss, global_step=global_step, var_list=var_list)
     return train_op
 
 

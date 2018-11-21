@@ -160,21 +160,20 @@ def read_data(data_path, valid_proportion, test_proportion, pos_path="1/", neg_p
     return x_train, y_train, x_valid, y_valid, x_test, y_test
 
 
-def get_data(img_abs_path, y):
+def get_data(img_abs_path, y, is_train=False):
     image = cv2.imread(img_abs_path)
     image = image[:, :, ::-1]  # RGB image
     image = resize_img(image)
-    # image = random_distort_image(image, hue=10)
-
-    # flip = np.random.randint(2)
-    # image = random_flip(image, flip)
-
-    # image = tl.prepro.shift(image, is_random=True)
+    if is_train == True:
+        image = random_distort_image(image, hue=10)
+        flip = np.random.randint(2)
+        image = random_flip(image, flip)
+        image = tl.prepro.shift(image, is_random=True)
 
     return image, y
 
 
-def data_generator(x_train, y_train, is_show=False):
+def data_generator(x_train, y_train, is_show=False, is_train=False):
     batch_size = Gb_batch_size
     n = len(y_train)
     i = 0
@@ -185,7 +184,7 @@ def data_generator(x_train, y_train, is_show=False):
         while len(y_datas) < batch_size:
             # for t in range(batch_size):
             i %= n
-            x_data, y_data = get_data(x_train[i], y_train[i])
+            x_data, y_data = get_data(x_train[i], y_train[i], is_train=False)
             i += 1
             if is_show == True:
                 print(y_data)
@@ -204,9 +203,9 @@ def data_generator(x_train, y_train, is_show=False):
 
 
 if __name__ == '__main__':
-    x_train, y_train, x_valid, y_valid, x_test, y_test = read_data('/home/hsq/DeepLearning/data/dogVscat/train', 0.3, 0,
+    x_train, y_train, x_valid, y_valid, x_test, y_test = read_data('/home/xinje/hsq/data/dogVScat', 0.3, 0,
                                                                    pos_path="/dog/", neg_path="/cat/")
-    a = data_generator(x_train, y_train, is_show=True)
+    a = data_generator(x_train, y_train, is_show=True,is_train=True)
     for x in a:
         print('ok')
     exit()
