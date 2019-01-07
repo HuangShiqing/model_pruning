@@ -2,7 +2,6 @@ import os
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt  # dealing with plots
-import tensorlayer as tl
 
 from varible import *
 
@@ -80,101 +79,91 @@ def random_distort_image(image, hue=18, saturation=1.5, exposure=1.5):
     return cv2.cvtColor(image.astype('uint8'), cv2.COLOR_HSV2RGB)
 
 
-def read_data(data_path, valid_proportion, test_proportion, pos_path="1/", neg_path="0/"):
-    """
-    Args:
-        data_path: list,数据所在文件夹，最后有一杠
-        valid_proportion: float，验证集所占百分比，小数，如0.1
-        test_proportion: float，测试集所占百分比
-        pos_path: str,正样本所在文件夹
-        neg_path: str,负样本所在文件夹
-    Returns:
-        x_train: list，dtype=str，图片路径
-        y_train: list, dtype=int
-        x_valid: list，dtype=str，图片路径
-        y_valid: list, dtype=int
-        x_test: list，dtype=str，图片路径
-        y_test: list, dtype=int
-    """
-
-    pos_image_path = []
-    pos_labels = []
-
-    neg_image_path = []
-    neg_labels = []
-
-    ful_image_path = []
-    ful_labels = []
-
-    np.random.seed(0)
-
-    pos_path = data_path + pos_path
-    for img in os.listdir(pos_path):
-        label = 1
-
-        path = os.path.join(pos_path, img)
-        pos_image_path.append(path)
-        pos_labels.append(label)
-
-    neg_path = data_path + neg_path
-    for img in os.listdir(neg_path):
-        label = 0
-
-        path = os.path.join(neg_path, img)
-        neg_image_path.append(path)
-        neg_labels.append(label)
-
-    ful_image_path = pos_image_path + neg_image_path
-    ful_labels = pos_labels + neg_labels
-
-    temp = np.array([ful_image_path, ful_labels])
-    temp = temp.transpose()
-    np.random.shuffle(temp)
-    ful_image_path = list(temp[:, 0])
-    ful_labels = list(temp[:, 1])
-    ful_labels = [int(i) for i in ful_labels]
-
-    x_valid = []
-    y_valid = []
-    x_test = []
-    y_test = []
-    from sklearn.model_selection import train_test_split
-    if not valid_proportion == 0:
-        x_train, x_valid, y_train, y_valid = train_test_split(ful_image_path, ful_labels,
-                                                              test_size=(valid_proportion + test_proportion),
-                                                              stratify=ful_labels, random_state=1)
-        if not test_proportion == 0:
-            x_valid, x_test, y_valid, y_test = train_test_split(x_valid, y_valid, test_size=test_proportion / (
-                    valid_proportion + test_proportion), stratify=y_valid, random_state=1)
-    else:
-        x_train = ful_image_path
-        y_train = ful_labels
-
-    print("train_num: %d ,pos_num: %d , neg_num: %d" % (
-        len(y_train), y_train.count(1), len(y_train) - y_train.count(1)))
-    print("valid_num: %d ,pos_num: %d , neg_num: %d" % (
-        len(y_valid), y_valid.count(1), len(y_valid) - y_valid.count(1)))
-    print("test_num : %d ,pos_num: %d , neg_num: %d" % (
-        len(y_test), y_test.count(1), len(y_test) - y_test.count(1)))
-
-    return x_train, y_train, x_valid, y_valid, x_test, y_test
+def read_data(dir):
+    x_train, y_train, x_valid, y_valid = [], [], [], []
+    with open(dir + 'train.txt', 'r') as f:
+        for line in f.readlines():
+            x_train.append(line.strip().split(' ')[0])
+            y_train.append(line.strip().split(' ')[1])
+    with open(dir + 'valid.txt', 'r') as f:
+        for line in f.readlines():
+            x_valid.append(line.strip().split(' ')[0])
+            y_valid.append(line.strip().split(' ')[1])
+    return x_train, y_train, x_valid, y_valid
 
 
-def get_data(img_abs_path, y):
+# def read_data(dir):
+#     valid_proportion, test_proportion = 0.3, 0
+#
+#     img_paths = list()
+#     labels = list()
+#
+#     cur_dir = os.getcwd()
+#     os.chdir(dir + 'train_label/')
+#     label_all = os.listdir('.')
+#     os.chdir(cur_dir)
+#     cur_dir = os.getcwd()
+#     os.chdir(dir + '/train/')
+#     img_all = os.listdir('.')
+#
+#     for i in range(len(img_all)):
+#         if img_all[i].rstrip('jpg') + 'xml' not in label_all:
+#             img_paths.append(dir + '/train/' + img_all[i])
+#             labels.append(0)
+#         else:
+#             img_paths.append(dir + '/train/' + img_all[i])
+#             labels.append(1)
+#
+#     temp = np.array([img_paths, labels])
+#     temp = temp.transpose()
+#     np.random.seed(0)
+#     np.random.shuffle(temp)
+#     ful_image_path = list(temp[:, 0])
+#     ful_labels = list(temp[:, 1])
+#     ful_labels = [int(i) for i in ful_labels]
+#
+#     x_valid = []
+#     y_valid = []
+#     x_test = []
+#     y_test = []
+#     from sklearn.model_selection import train_test_split
+#     if not valid_proportion == 0:
+#         x_train, x_valid, y_train, y_valid = train_test_split(ful_image_path, ful_labels,
+#                                                               test_size=(valid_proportion + test_proportion),
+#                                                               stratify=ful_labels, random_state=1)
+#         if not test_proportion == 0:
+#             x_valid, x_test, y_valid, y_test = train_test_split(x_valid, y_valid, test_size=test_proportion / (
+#                     valid_proportion + test_proportion), stratify=y_valid, random_state=1)
+#     else:
+#         x_train = ful_image_path
+#         y_train = ful_labels
+#
+#     print("train_num: %d ,0_num: %d , 1_num: %d" % (
+#         len(y_train), y_train.count(0), y_train.count(1)))
+#     print("valid_num: %d ,0_num: %d , 1_num: %d" % (
+#         len(y_valid), y_valid.count(0), y_valid.count(1)))
+#     print("test_num: %d ,0_num: %d , 1_num: %d" % (
+#         len(y_test), y_test.count(0), y_test.count(1)))
+#
+#     os.chdir(cur_dir)
+#     return x_train, y_train, x_valid, y_valid, x_test, y_test
+
+
+def get_augment_data(img_abs_path, y, is_train=True):
+    # TODO: add more augment function to here
     image = cv2.imread(img_abs_path)
     image = image[:, :, ::-1]  # RGB image
     image = resize_img(image)
-    image = random_distort_image(image, hue=10)
 
-    flip = np.random.randint(2)
-    image = random_flip(image, flip)
-
-    image = tl.prepro.shift(image, is_random=True)
+    if is_train == True:
+        # image = random_distort_image(image)
+        flip = np.random.randint(2)
+        image = random_flip(image, flip)
 
     return image, y
 
 
-def data_generator(x_train, y_train, is_show=False):
+def data_generator(x_train, y_train, is_show=False, is_train=True):
     batch_size = Gb_batch_size
     n = len(y_train)
     i = 0
@@ -185,7 +174,9 @@ def data_generator(x_train, y_train, is_show=False):
         while len(y_datas) < batch_size:
             # for t in range(batch_size):
             i %= n
-            x_data, y_data = get_data(x_train[i], y_train[i])
+            os.chdir(Gb_data_dir)
+            x_data, y_data = get_augment_data(x_train[i], y_train[i], is_train=is_train)
+
             i += 1
             if is_show == True:
                 print(y_data)
@@ -204,8 +195,7 @@ def data_generator(x_train, y_train, is_show=False):
 
 
 if __name__ == '__main__':
-    x_train, y_train, x_valid, y_valid, x_test, y_test = read_data('/home/hsq/DeepLearning/data/dogVscat/train', 0.3, 0,
-                                                                   pos_path="/dog/", neg_path="/cat/")
+    x_train, y_train, x_valid, y_valid = read_data(Gb_data_dir)
     a = data_generator(x_train, y_train, is_show=True)
     for x in a:
         print('ok')
