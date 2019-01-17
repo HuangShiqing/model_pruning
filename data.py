@@ -81,11 +81,11 @@ def random_distort_image(image, hue=18, saturation=1.5, exposure=1.5):
 
 def read_data(dir):
     x_train, y_train, x_valid, y_valid = [], [], [], []
-    with open(dir + 'train.txt', 'r') as f:
+    with open(os.path.join(dir, 'train.txt'), 'r') as f:
         for line in f.readlines():
             x_train.append(line.strip().split(' ')[0])
             y_train.append(line.strip().split(' ')[1])
-    with open(dir + 'valid.txt', 'r') as f:
+    with open(os.path.join(dir, 'valid.txt'), 'r') as f:
         for line in f.readlines():
             x_valid.append(line.strip().split(' ')[0])
             y_valid.append(line.strip().split(' ')[1])
@@ -156,7 +156,7 @@ def get_augment_data(img_abs_path, y, is_train=True):
     image = resize_img(image)
 
     if is_train == True:
-        # image = random_distort_image(image)
+        image = random_distort_image(image)
         flip = np.random.randint(2)
         image = random_flip(image, flip)
 
