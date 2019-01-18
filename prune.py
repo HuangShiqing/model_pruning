@@ -6,7 +6,7 @@ from sklearn.utils import shuffle
 
 from varible import *
 from model import *
-
+from proposal_L1 import *
 from train import optimizer_sgd, losses
 from data import read_data, data_generator
 
@@ -56,8 +56,8 @@ def restore_part_var(load_ckpt_dir, load_ckpt_name, proposal, layer_names, layer
         else:
             # 如果被裁减的是最后一层的话，需要恢复'fc3_identity/W'
             if layer_index == 12:
-                g = reader.get_tensor('conv_53/kernel')
-                e = proposal['bn_53']
+                g = reader.get_tensor('53_conv/kernel')
+                e = proposal['53']
                 f = [i for i in range(g.shape[-1]) if i not in e]
                 d = a[f]
             # 恢复被裁剪的后一层参数
@@ -68,8 +68,7 @@ def restore_part_var(load_ckpt_dir, load_ckpt_name, proposal, layer_names, layer
         sess.run(tf.assign(get_target_variable(var_part_restore[i]), d))
 
 
-n_filter = {'11': 64, '12': 64, '21': 128, '22': 128, '31': 256, '32': 256,
-            '33': 256, '41': 512, '42': 512, '43': 512,
+n_filter = {'11': 64, '12': 64, '21': 128, '22': 128, '31': 256, '32': 256, '33': 256, '41': 512, '42': 512, '43': 512,
             '51': 512, '52': 512, '53': 512}
 x_train, y_train, x_valid, y_valid = read_data(Gb_data_dir)
 fine_turning_step = Gb_fine_turning_step
@@ -80,13 +79,13 @@ n_step_epoch = int(len(y_train) / batch_size)
 last_ckpt = ''
 for channel in range(0, 4224):
     tf.reset_default_graph()
-    load_ckpt_dir = './ckpt/' if last_ckpt == '' else os.path.join(Gb_ckpt_dir,
-                                                                   str(channel - 1))
+    load_ckpt_dir = './ckpt/' if last_ckpt == '' else os.path.join(Gb_ckpt_dir, str(channel - 1))
     load_ckpt_name = 'ep006-step3000-loss5.232' if last_ckpt == '' else last_ckpt
     final_dir = os.path.join(Gb_ckpt_dir, str(channel))
     log_dir = final_dir
 
-    proposal = random_proposal(n_filter)
+    proposal = L1_proposal(n_filter, load_ckpt_dir, load_ckpt_name)
+    # proposal = random_proposal(n_filter)
     # proposal = {'11': [20]}
     layer_names = ['11', '12', '21', '22', '31', '32', '33', '41', '42', '43', '51', '52', '53']
     layer_index = layer_names.index(list(proposal.keys())[0])
@@ -143,27 +142,38 @@ for channel in range(0, 4224):
         save_path = saver.save(sess,
                                os.path.join(final_dir, 'ep{0:03d}-step{1:d}-loss{2:.3f}'.format(epoch, step, loss)))
         last_ckpt = 'ep{0:03d}-step{1:d}-loss{2:.3f}'.format(epoch, step, loss)
-        # if channel % 50 == 0:
-        #     data_yield = data_generator(x_valid, y_valid, is_train=False)
-        #     error_num = 0
-        #     i = 0
-        #
-        #     for img, lable in data_yield:
-        #         logist_out = sess.run(logist, feed_dict={input_pb: img})
-        #         logist_out = np.argmax(logist_out, axis=-1)
-        #         a = np.equal(logist_out, list(map(int, lable)))
-        #         a = list(a)
-        #         error_num += a.count(False)
-        #         i += 1
-        #     print('error: ', str(error_num), ' in ', str(i * Gb_batch_size))
-        #
-        #     with open(os.path.join(Gb_ckpt_dir, 'log.txt'), 'a') as f:
-        #         f.write(str(channel) + str(proposal) + '\n')
-        #         f.write('error: ' + str(error_num) + ' in ' + str(i * Gb_batch_size) + '\n')
-        # else:
-        #     with open(os.path.join(Gb_ckpt_dir, 'log.txt'), 'a') as f:
-        #         f.write(str(channel) + str(proposal) + '\n')
 
         if channel % 50 == 0 and channel > 0:
             for i in range(channel - 49, channel):
                 os.rmdir(os.path.join(Gb_ckpt_dir, str(channel)))
+
+    if channel % 50 == 0:
+        tf.reset_default_graph()
+        data_yield = data_generator(x_valid, y_valid, is_train=False)
+        input_pb = tf.placeholder(tf.float32, [None, 224, 224, 3])
+        logist, net = vgg16_adjusted(input_pb, n_filter=n_filter, is_train=False)
+
+        try:
+            restore_saver.restore(sess, os.path.join(final_dir, last_ckpt))
+            print("load ok!")
+        except:
+            print("ckpt文件不存在")
+            raise
+
+        error_num = 0
+        i = 0
+        for img, lable in data_yield:
+            logist_out = sess.run(logist, feed_dict={input_pb: img})
+            logist_out = np.argmax(logist_out, axis=-1)
+            a = np.equal(logist_out, list(map(int, lable)))
+            a = list(a)
+            error_num += a.count(False)
+            i += 1
+        print('error: ', str(error_num), ' in ', str(i * Gb_batch_size))
+
+        with open(os.path.join(Gb_ckpt_dir, 'log.txt'), 'a') as f:
+            f.write(str(channel) + str(proposal) + '\n')
+            f.write('error: ' + str(error_num) + ' in ' + str(i * Gb_batch_size) + '\n')
+    else:
+        with open(os.path.join(Gb_ckpt_dir, 'log.txt'), 'a') as f:
+            f.write(str(channel) + str(proposal) + '\n')
