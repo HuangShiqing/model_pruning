@@ -3,10 +3,12 @@ import tensorflow as tf
 import time
 import os
 from sklearn.utils import shuffle
+import shutil
 
 from varible import *
 from model import *
 from proposal_L1 import *
+from proposal_APoZ import *
 from train import optimizer_sgd, losses
 from data import read_data, data_generator
 
@@ -84,9 +86,11 @@ for channel in range(0, 4224):
     final_dir = os.path.join(Gb_ckpt_dir, str(channel))
     log_dir = final_dir
 
+    # proposal = APoZ_proposal(n_filter, load_ckpt_dir, load_ckpt_name)
     proposal = L1_proposal(n_filter, load_ckpt_dir, load_ckpt_name)
     # proposal = random_proposal(n_filter)
     # proposal = {'11': [20]}
+    tf.reset_default_graph()
     layer_names = ['11', '12', '21', '22', '31', '32', '33', '41', '42', '43', '51', '52', '53']
     layer_index = layer_names.index(list(proposal.keys())[0])
     n_filter[list(proposal.keys())[0]] -= 1
@@ -145,35 +149,40 @@ for channel in range(0, 4224):
 
         if channel % 50 == 0 and channel > 0:
             for i in range(channel - 49, channel):
-                os.rmdir(os.path.join(Gb_ckpt_dir, str(channel)))
+                train_writer.close()
+                # os.rmdir(os.path.join(Gb_ckpt_dir, str(i)))
+                # TODO:删除一直失败
+                shutil.rmtree(os.path.join(Gb_ckpt_dir, str(i)), ignore_errors=True)
 
     if channel % 50 == 0:
         tf.reset_default_graph()
         data_yield = data_generator(x_valid, y_valid, is_train=False)
         input_pb = tf.placeholder(tf.float32, [None, 224, 224, 3])
         logist, net = vgg16_adjusted(input_pb, n_filter=n_filter, is_train=False)
+        saver = tf.train.Saver(max_to_keep=1000)
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            try:
+                saver.restore(sess, os.path.join(final_dir, last_ckpt))
+                print("load ok!")
+            except:
+                print("ckpt文件不存在")
+                raise
 
-        try:
-            restore_saver.restore(sess, os.path.join(final_dir, last_ckpt))
-            print("load ok!")
-        except:
-            print("ckpt文件不存在")
-            raise
+            error_num = 0
+            i = 0
+            for img, lable in data_yield:
+                logist_out = sess.run(logist, feed_dict={input_pb: img})
+                logist_out = np.argmax(logist_out, axis=-1)
+                a = np.equal(logist_out, list(map(int, lable)))
+                a = list(a)
+                error_num += a.count(False)
+                i += 1
+            print('error: ', str(error_num), ' in ', str(i * Gb_batch_size))
 
-        error_num = 0
-        i = 0
-        for img, lable in data_yield:
-            logist_out = sess.run(logist, feed_dict={input_pb: img})
-            logist_out = np.argmax(logist_out, axis=-1)
-            a = np.equal(logist_out, list(map(int, lable)))
-            a = list(a)
-            error_num += a.count(False)
-            i += 1
-        print('error: ', str(error_num), ' in ', str(i * Gb_batch_size))
-
-        with open(os.path.join(Gb_ckpt_dir, 'log.txt'), 'a') as f:
-            f.write(str(channel) + str(proposal) + '\n')
-            f.write('error: ' + str(error_num) + ' in ' + str(i * Gb_batch_size) + '\n')
+            with open(os.path.join(Gb_ckpt_dir, 'log.txt'), 'a') as f:
+                f.write(str(channel) + str(proposal) + '\n')
+                f.write('error: ' + str(error_num) + ' in ' + str(i * Gb_batch_size) + '\n')
     else:
         with open(os.path.join(Gb_ckpt_dir, 'log.txt'), 'a') as f:
             f.write(str(channel) + str(proposal) + '\n')
