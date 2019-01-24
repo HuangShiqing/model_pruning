@@ -37,7 +37,8 @@ def L1_proposal(n_filter, load_ckpt_dir, load_ckpt_name):
         ranks = []
         for w in ws:
             target_var = sess.run(get_target_variable(w))
-            L1 = np.sum(np.abs(target_var), axis=(0, 1, 2))
+            # TODO:论文是说L1求和的，但是求和会和输入通道数有关，所以我这里用均值了
+            L1 = np.mean(np.abs(target_var), axis=(0, 1, 2))
             # TODO:添加Normalize
             add_array = np.full(shape=(512 - L1.shape[-1]), fill_value=100)
             L1 = np.hstack((L1, add_array))
