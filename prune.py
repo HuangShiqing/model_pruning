@@ -147,9 +147,9 @@ for channel in range(0, 4224):
                                os.path.join(final_dir, 'ep{0:03d}-step{1:d}-loss{2:.3f}'.format(epoch, step, loss)))
         last_ckpt = 'ep{0:03d}-step{1:d}-loss{2:.3f}'.format(epoch, step, loss)
 
+        train_writer.close()
         if channel % 50 == 0 and channel > 0:
             for i in range(channel - 49, channel):
-                train_writer.close()
                 # os.rmdir(os.path.join(Gb_ckpt_dir, str(i)))
                 # TODO:删除一直失败
                 shutil.rmtree(os.path.join(Gb_ckpt_dir, str(i)), ignore_errors=True)
